@@ -1,0 +1,6 @@
+This project is a simple automation for Chrome's offline "dinosaur game", using arduino.
+To make this you would require:
+    - An Arduino
+    - A Servo
+    - An LDR (Digital Out)
+    - Some tape
