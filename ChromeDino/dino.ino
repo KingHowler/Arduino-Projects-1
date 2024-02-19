@@ -7,8 +7,7 @@
 
 
 //Defining the pins for the LDR ; Change it to whatever pin yours is connected to
-#define ldr 3
-
+#define ldr 4
 //Defining the servo 
 Servo serv;
 
