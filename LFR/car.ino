@@ -1,194 +1,111 @@
-#define rb 9
-#define rf 8
-#define lb 13
-#define lf 12
+// Motor Connections
+const int LF =  2;     // Left Forward
+const int LS =  3;     // Left Speed
+const int LB =  4;     // Left Backward
+const int RF =  5;     // Right Forward
+const int RS =  6;     // Right Speed
+const int RB =  7;     // Right Backward
 
-#define l2 7
-#define l1 6
-#define m 5
-#define r1 4
-#define r2 3
-#define en 11
-#define en2 10
-int l1R;
-int l2R;
-int mR;
-int r1R;
-int r2R;
-int error;
+// IR Array Connections
+const int LH_IR =  8;    // Very Left IR   
+const int LM_IR =  9;    // Slight Left IR
+const int M_IR  = 10;    // Middle IR
+const int RM_IR = 11;    // Slight Right IR
+const int RH_IR = 12;    // Very Right IR
+
+// IR Value containers
+int LH_V;
+int LM_V;
+int M_V;
+int RM_V;
+int RH_V;
+
+//Motor Speed Values
+const int Max = 255; //Maximum Speed
+const int TurnSensitivity = 0.42; // Speed / Wobble
+int TurnSpeed;
+
 
 void setup() {
   // put your setup code here, to run once:
-pinMode (rf,OUTPUT);
-pinMode (lf,OUTPUT);
-pinMode (rb,OUTPUT);
-pinMode (lb,OUTPUT);
-
-pinMode (l2,INPUT);
-pinMode (l1,INPUT);
-pinMode (m,INPUT);
-pinMode (r1,INPUT);
-pinMode (r2,INPUT);
-
+  pinMode(LF , OUTPUT);
+  pinMode(LB , OUTPUT);
+  pinMode(LS , OUTPUT);
+  pinMode(RF , OUTPUT);
+  pinMode(RB , OUTPUT);
+  pinMode(RS , OUTPUT);
+  TurnSpeed = TurnSensitivity * Max;
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  LH_V = digitalRead(LH_IR);
+  LM_V = digitalRead(LM_IR);
+  M_V  = digitalRead(M_IR );
+  RM_V = digitalRead(RM_IR);
+  RH_V = digitalRead(RH_IR); // 0 means Black
 
-int a= 80;
-reading();
-if (error == 0){
-  forward(a+155);
-  reading();
-}
-
-while (error == -1){
-  left(a+120);
-  reading();
-}
-
-while (error == -2){
-  leftsharp(a+120);
-  reading();
-}
-
-while (error == 1){
-  right(a+120);
-  reading();
-}
-while (error == 2){
-  rightsharp(a+120);
-  reading();
-}
-
-while (error == -3){
-  leftsharp(a+120);
-  reading();
-}
-while (error == 3){
-  rightsharp(a+120);
-  reading();
-}
-while (error == -4){
-  leftsharp(a+120);
-  reading();
-}
-while(error == 4){
-  rightsharp(a+120);
-  reading();
-}
-while (error == -5){
-  leftsharp(a+120);
-  delay(500);
-  reading();
-}
-while (error == 10){
-  forward(a);
-  reading();
-}
-
-}
-
-void reading(){
-  int l1R = digitalRead(l1);
-  if (l1R == 0){
-    error = -1;
+  if (M_V == 1) {                         // Middle sensor is not on track
+    if (LM_V == 0) {                      // Slight Left IR is on track
+      while(M_V != 0 && LH_V != 0) {      // Turn slighly left until middles sensor is back on track or car has offshooted
+        left(Max, TurnSpeed);
+        M_V = digitalRead(M_IR);
+      }
+    }
+    if (RM_V == 0) {                      // Slight Right IR is on track
+      while(M_V != 0 && RH_V != 0) {      // Turn slighly right until middles sensor is back on track or car has offshooted
+        right(TurnSpeed, Max);
+        M_V = digitalRead(M_IR);
+      }
+    }
+    if (LH_V == 0) {                      // Very Left IR is on track
+      while(M_V != 0) {                   // Turn left at max speed until middles sensor is back on track
+        left(Max, Max);
+        M_V = digitalRead(M_IR);
+      }
+    }
+    if (RH_V == 0) {                      // Very Right IR is on track
+      while(M_V != 0) {                   // Turn right at max speed until middles sensor is back on track
+        right(Max, Max);
+        M_V = digitalRead(M_IR);
+      }
+    }
   }
-  int l2R = digitalRead(l2);
-  if (l2R == 0){
-    error = -2;
-  }
-  int r1R = digitalRead(r1);
-  if (r1R == 0){
-    error = 1;
-  }
-  int r2R = digitalRead(r2);
-  if (r2R == 0){
-    error = 2;
-  }
-  int mR = digitalRead(m);
-  if (mR == 0){
-    error = 0;
-  }
-
-  if (l1R == 0 && l2R == 0){
-    error ==-3;
-  }
-  if (l1R == 0 && l2R == 0 && mR == 0){
-    error ==-4;
-  }
-  if (r1R == 0 && r2R == 0){
-    error == 3;
-  }
-  if (r1R == 0 && r2R == 0 && mR == 0 ){
-    error == 4;
-  }
-  if (r1R == 0 && r2R == 0 && mR == 0 && l1R == 0 && l2R == 0){
-    error = 10;
-  }
-  if (l1R == 1 && l2R == 0 && r1R == 0 && mR == 0 && r2R == 0){
-    error = -5;
-  }
+  forward(Max, Max);                      // Go forward once all errors have been corrected
 }
 
-void forward(int a)
-{
-digitalWrite (rf,HIGH);
-digitalWrite (lf,HIGH);
-digitalWrite (lb,LOW);
-digitalWrite (rb,LOW);
-analogWrite (en,a);
-analogWrite (en2,a);
-
-
-}
-void backward(int a){
-digitalWrite (rf,LOW);
-digitalWrite (lf,LOW);
-digitalWrite (lb,HIGH);
-digitalWrite (rb,HIGH);
-analogWrite (en,a);
-analogWrite (en2,a);
+void forward(int L_Speed, int R_Speed) {
+  analogWrite(LS, L_Speed);
+  analogWrite(RS, R_Speed);
+  digitalWrite(LF , HIGH);
+  digitalWrite(LB , LOW);
+  digitalWrite(RF , HIGH);
+  digitalWrite(RB , LOW);
 }
 
-void right(int a){
-digitalWrite (rf,LOW);
-digitalWrite (lf,HIGH);
-digitalWrite (lb,LOW);
-digitalWrite (rb,LOW);
-analogWrite (en,a);
-analogWrite (en2,a);}
-
-void left (int a){
-digitalWrite (rf,HIGH);
-digitalWrite (lf,LOW);
-digitalWrite (lb,LOW);
-digitalWrite (rb,LOW);
-analogWrite (en,a);
-analogWrite (en2,a);
+void backward(int L_Speed, int R_Speed) {
+  analogWrite(LS, L_Speed);
+  analogWrite(RS, R_Speed);
+  digitalWrite(LF , LOW);
+  digitalWrite(LB , HIGH);
+  digitalWrite(RF , LOW);
+  digitalWrite(RB , HIGH);
 }
 
-void leftsharp (int a){
-digitalWrite (rf,HIGH);
-digitalWrite (lf,LOW);
-digitalWrite (lb,HIGH);
-digitalWrite (rb,LOW);
-analogWrite (en,a);
-analogWrite (en2,a);
+void left(int L_Speed, int R_Speed) {
+  analogWrite(LS, L_Speed);
+  analogWrite(RS, R_Speed);
+  digitalWrite(LF , HIGH);
+  digitalWrite(LB , LOW);
+  digitalWrite(RF , LOW);
+  digitalWrite(RB , HIGH);
 }
-void rightsharp (int a){
-digitalWrite (rf,LOW);
-digitalWrite (lf,HIGH);
-digitalWrite (lb,LOW);
-digitalWrite (rb,HIGH);
-analogWrite (en,a);
-analogWrite (en2,a);}
 
-void stop (int a){
-digitalWrite (rf,LOW);
-digitalWrite (lf,LOW);
-digitalWrite (lb,LOW);
-digitalWrite (rb,LOW);
-analogWrite (en,a);
-analogWrite (en2,a);
+void right(int L_Speed, int R_Speed) {
+  analogWrite(LS, L_Speed);
+  analogWrite(RS, R_Speed);
+  digitalWrite(LF , LOW);
+  digitalWrite(LB , HIGH);
+  digitalWrite(RF , HIGH);
+  digitalWrite(RB , LOW);
 }
